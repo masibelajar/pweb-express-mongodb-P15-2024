@@ -1,13 +1,10 @@
-import { Router } from 'express';
-import { updateBookStatus, getBooksByStatus } from '../controllers/mechanism.controller';
-import { authenticateToken } from '../middleware/auth';
+import MechanismController from "@/controllers/mechanism.controller";
+import { authMiddleware } from "@/middleware/auth";
+import { Router } from "express";
 
-const router = Router();
+const router: Router = Router();
 
-// Rute untuk mengubah status buku berdasarkan ID
-router.patch('/:bookId/status', authenticateToken, updateBookStatus);
-
-// Rute untuk mendapatkan daftar buku berdasarkan status
-router.get('/status', authenticateToken, getBooksByStatus);
+router.post("/borrow/:id", authMiddleware, MechanismController.borrowBook);
+router.post("/return/:id", authMiddleware, MechanismController.returnBook);
 
 export default router;

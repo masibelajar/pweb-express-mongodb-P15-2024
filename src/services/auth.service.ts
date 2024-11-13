@@ -1,39 +1,49 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/user.model';
+import type { IAuth } from "@/models/auth.model";
+import Auth from "@/models/auth.model";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export class AuthService {
-    // Fungsi untuk mendaftarkan pengguna baru
-    async register(username: string, password: string): Promise<IUser> {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
-        return await newUser.save();
+  async register(authData: IAuth): Promise<IAuth> {
+    console.log(authData);
+
+    if (await Auth.findOne({ email: authData.email })) {
+      throw new Error("Email already exists");
     }
 
-    // Fungsi untuk login pengguna
-    async login(username: string, password: string): Promise<string | null> {
-        const user = await User.findOne({ username });
-        if (!user) return null;
+    const hashedPassword = await bcrypt.hash(authData.password, 10);
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return null;
+    const auth = new Auth({ ...authData, password: hashedPassword });
 
-        const token = jwt.sign(
-            { id: user._id, username: user.username },
-            process.env.JWT_SECRET as string,
-            { expiresIn: '1h' }
-        );
-        return token;
+    return await auth.save();
+  }
+
+  async login(authData: {
+    email: string;
+    password: string;
+  }): Promise<{ auth: IAuth; token: string }> {
+    const auth = await Auth.findOne({ email: authData.email });
+
+    if (!auth) {
+      throw new Error("User not found");
     }
 
-    // Fungsi untuk memverifikasi token JWT
-    verifyToken(token: string): string | object | null {
-        try {
-            return jwt.verify(token, process.env.JWT_SECRET as string);
-        } catch (error) {
-            return null;
-        }
+    const isPasswordCorrect = await bcrypt.compare(
+      authData.password,
+      auth.password
+    );
+
+    if (!isPasswordCorrect) {
+      throw new Error("Incorrect password");
     }
+
+    const token = jwt.sign(
+      { id: auth._id, email: auth.email },
+      process.env.JWT_SECRET
+    );
+
+    return { auth, token };
+  }
 }
 
 export default new AuthService();

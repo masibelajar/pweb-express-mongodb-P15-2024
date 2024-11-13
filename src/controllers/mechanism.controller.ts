@@ -1,28 +1,55 @@
-import { Request, Response } from 'express';
-import mechanismService from '../services/mechanism.service';
+import MechanismService from "@/services/mechanism.service";
+import formatResponse from "@/format/formatResponse";
+import type { Request, Response } from "express";
 
-export const updateBookStatus = async (req: Request, res: Response) => {
-    const { bookId } = req.params;
-    const { status } = req.body;
-
+class MechanismController {
+  async borrowBook(req: Request, res: Response) {
     try {
-        const updatedBook = await mechanismService.updateBookStatus(bookId, status);
-        if (!updatedBook) {
-            return res.status(404).json({ message: 'Book not found' });
-        }
-        res.json(updatedBook);
+      const bookId = req.params.id;
+
+      const book = await MechanismService.borrowBook(bookId);
+      const response = formatResponse("success", "Book borrowed successfully", {
+        currentQty: book.qty,
+      });
+      res.status(200).json(response);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      if (error.message === "Book not found") {
+        const response = formatResponse("failed", error.message);
+        res.status(404).json(response);
+      } else if (error.message === "Book cannot be borrowed") {
+        const response = formatResponse("failed", error.message);
+        res.status(400).json(response);
+      } else {
+        console.log(error);
+        const response = formatResponse("error", error.message);
+        res.status(500).json(response);
+      }
     }
-};
+  }
 
-export const getBooksByStatus = async (req: Request, res: Response) => {
-    const { status } = req.query;
-
+  async returnBook(req: Request, res: Response) {
     try {
-        const books = await mechanismService.getBooksByStatus(status as string);
-        res.json(books);
+      const bookId = req.params.id;
+
+      const book = await MechanismService.returnBook(bookId);
+      const response = formatResponse("success", "Book returned successfully", {
+        currentQty: book.qty,
+      });
+      res.status(200).json(response);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      if (error.message === "Book not found") {
+        const response = formatResponse("failed", error.message);
+        res.status(404).json(response);
+      } else if (error.message === "Book cannot be returned") {
+        const response = formatResponse("failed", error.message);
+        res.status(400).json(response);
+      } else {
+        console.log(error);
+        const response = formatResponse("error", error.message);
+        res.status(500).json(response);
+      }
     }
-};
+  }
+}
+
+export default new MechanismController();

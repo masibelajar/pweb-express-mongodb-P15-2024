@@ -1,29 +1,37 @@
-import Book, { IBook } from '../models/book.model';
+import BookService from "./book.service";
 
-export class MechanismService {
-    // Contoh metode untuk mengubah status buku
-    async updateBookStatus(bookId: string, status: string): Promise<IBook | null> {
-        try {
-            const book = await Book.findByIdAndUpdate(
-                bookId,
-                { status: status },
-                { new: true }
-            );
-            return book;
-        } catch (error) {
-            throw new Error('Failed to update book status');
-        }
+class MechanismService {
+  async borrowBook(bookId: string) {
+    const book = await BookService.getBookById(bookId);
+
+    console.log(book.qty, book.initialQty);
+    if (!book) {
+      throw new Error("Book not found");
     }
 
-    // Metode untuk mendapatkan daftar buku berdasarkan status tertentu
-    async getBooksByStatus(status: string): Promise<IBook[]> {
-        try {
-            const books = await Book.find({ status: status });
-            return books;
-        } catch (error) {
-            throw new Error('Failed to fetch books by status');
-        }
+    if (book.qty <= 1) {
+      throw new Error("Book cannot be borrowed");
     }
+
+    book.qty--;
+    return await BookService.modifyBook(bookId, book);
+  }
+
+  async returnBook(bookId: string) {
+    const book = await BookService.getBookById(bookId);
+
+    console.log(book.qty, book.initialQty);
+    if (!book) {
+      throw new Error("Book not found");
+    }
+
+    if (book.qty >= book.initialQty) {
+      throw new Error("Book cannot be returned");
+    }
+
+    book.qty++;
+    return await BookService.modifyBook(bookId, book);
+  }
 }
 
 export default new MechanismService();

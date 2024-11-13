@@ -1,31 +1,67 @@
-import Book, { IBook } from '../models/book.model';
+import { isValidObjectId } from "mongoose";
+import type { IBook } from "../models/book.model";
+import Book from "../models/book.model";
 
 export class BookService {
-    // Fungsi untuk mendapatkan semua buku
-    async getAllBooks(): Promise<IBook[]> {
-        return await Book.find();
-    }
+  async addBook(bookData: IBook): Promise<IBook> {
+    const book = new Book(bookData);
+    return await book.save();
+  }
 
-    // Fungsi untuk mendapatkan buku berdasarkan ID
-    async getBookById(bookId: string): Promise<IBook | null> {
-        return await Book.findById(bookId);
-    }
+  async getAllBooks(): Promise<IBook[]> {
+    return await Book.find();
+  }
 
-    // Fungsi untuk membuat buku baru
-    async createBook(data: Partial<IBook>): Promise<IBook> {
-        const newBook = new Book(data);
-        return await newBook.save();
-    }
+  async getBookById(id: string): Promise<IBook | null> {
+    return await Book.findById(id);
+  }
 
-    // Fungsi untuk memperbarui buku berdasarkan ID
-    async updateBook(bookId: string, data: Partial<IBook>): Promise<IBook | null> {
-        return await Book.findByIdAndUpdate(bookId, data, { new: true });
-    }
+  async modifyBook(
+    id: string,
+    bookData: Partial<IBook>
+  ): Promise<IBook | null> {
+    try {
+      if (!isValidObjectId(id)) {
+        throw new Error(`Invalid book ID format: ${id}`);
+      }
 
-    // Fungsi untuk menghapus buku berdasarkan ID
-    async deleteBook(bookId: string): Promise<IBook | null> {
-        return await Book.findByIdAndDelete(bookId);
+      const updatedBook = await Book.findByIdAndUpdate(id, bookData, {
+        new: true,
+      });
+
+      if (!updatedBook) {
+        throw new Error(`Book with ID ${id} not found`);
+      }
+
+      return updatedBook;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Failed to update book");
     }
+  }
+
+  async removeBook(id: string): Promise<IBook | null> {
+    try {
+      if (!isValidObjectId(id)) {
+        throw new Error(`Invalid book ID format: ${id}`);
+      }
+
+      const deletedBook = await Book.findByIdAndDelete(id);
+
+      if (!deletedBook) {
+        throw new Error(`Book with ID ${id} not found`);
+      }
+
+      return deletedBook;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Failed to delete book");
+    }
+  }
 }
 
 export default new BookService();

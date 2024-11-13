@@ -1,37 +1,35 @@
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 
-export interface IBook extends Document {
-    title: string;
-    author: string;
-    publishedDate: string;
-    publisher: string;
-    description: string;
-    coverImage: string;
-    rating: {
-      average: number;
-      count: number;
-    };
-    tags: string[];
-    initialQty: number;
-    qty: number;
-}
-
-const BookSchema: Schema = new Schema(
-    {
-      title: { type: String, required: true },
-      author: { type: String, required: true },
-      publishedDate: { type: String, required: true },
-      publisher: { type: String, required: true },
-      description: { type: String, required: true },
-      coverImage: { type: String, required: true },
-      rating: {
-        average: { type: Number, required: true },
-        count: { type: Number, required: true },
+const bookSchema = new Schema(
+  {
+    title: { type: String, required: true, unique: true },
+    author: { type: String, required: true },
+    publishedDate: {
+      type: String,
+      required: true,
+      validate(val: any) {
+        const dateRegex =
+          /^(0[1-9]|[12][0-9]|3[01]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/;
+        const longDateRegex =
+          /^(0[1-9]|[12][0-9]|3[01]) (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/;
+        if (!dateRegex.test(val) && !longDateRegex.test(val)) {
+          throw new Error("Invalid date format");
+        }
       },
-      tags: { type: [String], required: true },
-      initialQty: { type: Number, required: true },
-      qty: { type: Number, required: true },
     },
-)
+    publisher: { type: String, required: true },
+    description: { type: String, required: true },
+    coverImage: { type: String, required: true },
+    rating: {
+      average: { type: Number, required: true },
+      count: { type: Number, required: true },
+    },
+    tags: [{ type: String, required: true }],
+    initialQty: { type: Number, required: true },
+    qty: { type: Number, required: true },
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model<IBook>('Book', BookSchema);
+const Book = mongoose.model("Book", bookSchema);
+export { Book };

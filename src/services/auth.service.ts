@@ -1,49 +1,50 @@
-import type { IAuth } from "@/models/auth.model";
-import Auth from "@/models/auth.model";
+import { User } from "../models/user.model";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
-export class AuthService {
-  async register(authData: IAuth): Promise<IAuth> {
-    console.log(authData);
-
-    if (await Auth.findOne({ email: authData.email })) {
-      throw new Error("Email already exists");
-    }
-
-    const hashedPassword = await bcrypt.hash(authData.password, 10);
-
-    const auth = new Auth({ ...authData, password: hashedPassword });
-
-    return await auth.save();
-  }
-
-  async login(authData: {
-    email: string;
-    password: string;
-  }): Promise<{ auth: IAuth; token: string }> {
-    const auth = await Auth.findOne({ email: authData.email });
-
-    if (!auth) {
-      throw new Error("User not found");
-    }
-
-    const isPasswordCorrect = await bcrypt.compare(
-      authData.password,
-      auth.password
-    );
-
-    if (!isPasswordCorrect) {
-      throw new Error("Incorrect password");
-    }
-
-    const token = jwt.sign(
-      { id: auth._id, email: auth.email },
-      process.env.JWT_SECRET
-    );
-
-    return { auth, token };
-  }
+interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
 }
 
-export default new AuthService();
+interface LoginRequest {
+  email?: string;
+  username?: string;
+  password: string;
+}
+
+export type { RegisterRequest };
+
+export const AuthService = {
+  async register(request: RegisterRequest) {
+    const newUser = new User(request);
+
+    try {
+      const savedUser = await newUser.save();
+      return { user: savedUser };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async login(request: LoginRequest) {
+    const { email, username, password } = request;
+
+    try {
+      const user = await User.findOne({ $or: [{ email }, { username }] });
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        throw new Error("Invalid password");
+      }
+
+      const token = await user.generateAuthToken();
+      return { user, token };
+    } catch (err) {
+      throw err;
+    }
+  },
+};

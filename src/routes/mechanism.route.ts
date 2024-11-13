@@ -1,10 +1,10 @@
-import MechanismController from "@/controllers/mechanism.controller";
-import { authMiddleware } from "@/middleware/auth";
-import { Router } from "express";
+import express from "express";
+const router = express.Router();
 
-const router: Router = Router();
+import { auth } from "../middleware/auth";
+import { MechanismController } from "../controllers/mechanism.controller";
 
-router.post("/borrow/:id", authMiddleware, MechanismController.borrowBook);
-router.post("/return/:id", authMiddleware, MechanismController.returnBook);
+router.post("/borrow/:id", auth, MechanismController.borrow);
+router.post("/return/:id", auth, MechanismController.returnBook);
 
 export default router;

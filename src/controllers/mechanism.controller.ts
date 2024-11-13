@@ -1,55 +1,45 @@
-import MechanismService from "@/services/mechanism.service";
-import formatResponse from "@/format/formatResponse";
-import type { Request, Response } from "express";
+import { type NextFunction, type Request, type Response } from "express";
 
-class MechanismController {
-  async borrowBook(req: Request, res: Response) {
+import { MechanismService } from "../services/mechanism.service";
+
+export const MechanismController = {
+  async borrow(req: Request, res: Response, next: NextFunction) {
     try {
-      const bookId = req.params.id;
+      const currentQty = await MechanismService.borrow(req.params.id);
 
-      const book = await MechanismService.borrowBook(bookId);
-      const response = formatResponse("success", "Book borrowed successfully", {
-        currentQty: book.qty,
+      res.status(200).send({
+        status: "success",
+        message: "Successfully borrowed book",
+        data: {
+          currentQty,
+        },
       });
-      res.status(200).json(response);
-    } catch (error) {
-      if (error.message === "Book not found") {
-        const response = formatResponse("failed", error.message);
-        res.status(404).json(response);
-      } else if (error.message === "Book cannot be borrowed") {
-        const response = formatResponse("failed", error.message);
-        res.status(400).json(response);
-      } else {
-        console.log(error);
-        const response = formatResponse("error", error.message);
-        res.status(500).json(response);
-      }
+    } catch (error: any) {
+      res.status(400).send({
+        status: "error",
+        message: error.message,
+        data: {},
+      });
     }
-  }
+  },
 
-  async returnBook(req: Request, res: Response) {
+  async returnBook(req: Request, res: Response, next: NextFunction) {
     try {
-      const bookId = req.params.id;
+      const currentQty = await MechanismService.returnBook(req.params.id);
 
-      const book = await MechanismService.returnBook(bookId);
-      const response = formatResponse("success", "Book returned successfully", {
-        currentQty: book.qty,
+      res.status(200).send({
+        status: "success",
+        message: "Successfully returned book",
+        data: {
+          currentQty,
+        },
       });
-      res.status(200).json(response);
-    } catch (error) {
-      if (error.message === "Book not found") {
-        const response = formatResponse("failed", error.message);
-        res.status(404).json(response);
-      } else if (error.message === "Book cannot be returned") {
-        const response = formatResponse("failed", error.message);
-        res.status(400).json(response);
-      } else {
-        console.log(error);
-        const response = formatResponse("error", error.message);
-        res.status(500).json(response);
-      }
+    } catch (error: any) {
+      res.status(400).send({
+        status: "error",
+        message: error.message,
+        data: {},
+      });
     }
-  }
-}
-
-export default new MechanismController();
+  },
+};

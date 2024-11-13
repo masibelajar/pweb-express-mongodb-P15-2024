@@ -1,67 +1,97 @@
-import { isValidObjectId } from "mongoose";
-import type { IBook } from "../models/book.model";
-import Book from "../models/book.model";
+import { Book } from "../models/book.model";
 
-export class BookService {
-  async addBook(bookData: IBook): Promise<IBook> {
-    const book = new Book(bookData);
-    return await book.save();
-  }
-
-  async getAllBooks(): Promise<IBook[]> {
-    return await Book.find();
-  }
-
-  async getBookById(id: string): Promise<IBook | null> {
-    return await Book.findById(id);
-  }
-
-  async modifyBook(
-    id: string,
-    bookData: Partial<IBook>
-  ): Promise<IBook | null> {
-    try {
-      if (!isValidObjectId(id)) {
-        throw new Error(`Invalid book ID format: ${id}`);
-      }
-
-      const updatedBook = await Book.findByIdAndUpdate(id, bookData, {
-        new: true,
-      });
-
-      if (!updatedBook) {
-        throw new Error(`Book with ID ${id} not found`);
-      }
-
-      return updatedBook;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error("Failed to update book");
-    }
-  }
-
-  async removeBook(id: string): Promise<IBook | null> {
-    try {
-      if (!isValidObjectId(id)) {
-        throw new Error(`Invalid book ID format: ${id}`);
-      }
-
-      const deletedBook = await Book.findByIdAndDelete(id);
-
-      if (!deletedBook) {
-        throw new Error(`Book with ID ${id} not found`);
-      }
-
-      return deletedBook;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error("Failed to delete book");
-    }
-  }
+interface CreateBookRequest {
+  title: string;
+  author: string;
+  publishedDate: string;
+  publisher: string;
+  description: string;
+  coverImage: string;
+  rating: {
+    average: number;
+    count: number;
+  };
+  tags: string[];
+  initialQty: number;
+  qty: number;
 }
 
-export default new BookService();
+interface UpdateBookRequest {
+  title?: string;
+  author?: string;
+  publishedDate?: string;
+  publisher?: string;
+  description?: string;
+  coverImage?: string;
+  rating?: {
+    average?: number;
+    count?: number;
+  };
+  tags?: string[];
+  initialQty?: number;
+  qty?: number;
+}
+
+export type { CreateBookRequest, UpdateBookRequest };
+
+export const BookService = {
+  async getAll() {
+    try {
+      const books = await Book.find();
+      return { books };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async getById(id: string) {
+    try {
+      const book = await Book.findById(id);
+      return { book };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async delete(id: string) {
+    try {
+      const book = await Book.findByIdAndDelete(id);
+      return { book };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async create(request: CreateBookRequest) {
+    const newBook = new Book(request);
+
+    try {
+      const savedBook = await newBook.save();
+      return { book: savedBook };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async update(request: UpdateBookRequest, id: string) {
+    try {
+      const bookFound = await Book.findById(id);
+
+      if (!bookFound) {
+        throw new Error("Book not found");
+      }
+
+      Object.keys(request).forEach((key) => {
+        const keyTyped = key as keyof UpdateBookRequest;
+        if (request[keyTyped]) {
+          (bookFound[keyTyped] as any) = request[keyTyped];
+        }
+      });
+
+      const updatedBook = await bookFound.save();
+      return { book: updatedBook };
+    } catch (err) {
+      throw err;
+    }
+  },
+};

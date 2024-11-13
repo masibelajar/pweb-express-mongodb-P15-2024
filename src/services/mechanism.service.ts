@@ -1,37 +1,46 @@
-import BookService from "./book.service";
+import { Book } from "../models/book.model";
 
-class MechanismService {
-  async borrowBook(bookId: string) {
-    const book = await BookService.getBookById(bookId);
+export const MechanismService = {
+  async borrow(id: string) {
+    try {
+      const book = await Book.findById(id);
 
-    console.log(book.qty, book.initialQty);
-    if (!book) {
-      throw new Error("Book not found");
+      if (!book) {
+        throw new Error("Book not found");
+      }
+
+      if (book.qty === 0) {
+        throw new Error("Book not available / out of stock");
+      }
+
+      book.qty -= 1;
+      await book.save();
+
+      return book.qty;
+    } catch (err) {
+      throw err;
     }
+  },
 
-    if (book.qty <= 1) {
-      throw new Error("Book cannot be borrowed");
+  async returnBook(id: string) {
+    try {
+      const book = await Book.findById(id);
+
+      if (!book) {
+        throw new Error("Book not found");
+      }
+
+      book.qty += 1;
+
+      if (book.qty > book.initialQty) {
+        throw new Error("Invalid return book, book qty exceeded initial qty");
+      }
+
+      await book.save();
+
+      return book.qty;
+    } catch (err) {
+      throw err;
     }
-
-    book.qty--;
-    return await BookService.modifyBook(bookId, book);
-  }
-
-  async returnBook(bookId: string) {
-    const book = await BookService.getBookById(bookId);
-
-    console.log(book.qty, book.initialQty);
-    if (!book) {
-      throw new Error("Book not found");
-    }
-
-    if (book.qty >= book.initialQty) {
-      throw new Error("Book cannot be returned");
-    }
-
-    book.qty++;
-    return await BookService.modifyBook(bookId, book);
-  }
-}
-
-export default new MechanismService();
+  },
+};

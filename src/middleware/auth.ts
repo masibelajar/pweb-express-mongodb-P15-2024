@@ -1,37 +1,45 @@
-import formatResponse from "@/format/formatResponse";
-import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { User } from "../models/user.model";
+import { type NextFunction, type Request, type Response } from "express";
+import dotenv from "dotenv";
 
-interface CustomRequest extends Request {
-  user?: string | jwt.JwtPayload;
-}
+dotenv.config();
 
-export const authMiddleware = async (
-  req: CustomRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      throw new Error("Authorization header is required");
+    }
+
+    // Token format : Bearer <access_token>
+    const token = authHeader.split(" ")[1];
     if (!token) {
-      throw new Error("No token provided");
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (!decoded) {
-      throw new Error("Invalid token");
+      throw new Error("Invalid token format");
     }
 
-    req.user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
+    const user = await User.findOne({ _id: decoded._id });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
     next();
-  } catch (error) {
-    if (error.message === "invalid signature") {
-      const response = formatResponse("failed", "Invalid token");
-      res.status(401).json(response);
+  } catch (error: any) {
+    if (error.message === "User not found") {
+      res.status(404).send({
+        status: "failed",
+        message: error.message,
+        data: {},
+      });
     } else {
-      console.log(error);
-      const response = formatResponse("error", error.message);
-      res.status(401).json(response);
+      res.status(401).send({
+        status: "failed",
+        message: error.message,
+        data: {},
+      });
     }
   }
 };
